@@ -4,6 +4,8 @@
 #' @param ko_list A character vector of KO identifiers (e.g., c("K00844", "K01803"))
 #' @param strict_metabolic Logical. If TRUE, limits analysis to only manually drawn reference metabolic pathways ('map' prefix).
 #' @return A list containing the covariance matrix and the binary pathway profile matrix.
+#' @importFrom utils read.delim
+#' @importFrom stats cov
 #' @export
 #' @examples 
 #' 
@@ -14,7 +16,10 @@
 #' my_kos <- c("K00844", "K00845", "K00164", "K00500")
 #' 
 #' # Run the function, without metabolic filtering
-#' results <- get_pathway_covariance_direct(my_kos)
+#' 
+#' library(keggcov)
+#' 
+#' results <- get_pathway_covariance(my_kos)
 #' 
 #' str(results)
 #' rownames(results$binary_matrix)
@@ -32,7 +37,7 @@
 #'}
 #'
 #' # Run the function, with metabolic filtering
-#' results <- get_pathway_covariance_direct(my_kos, strict_metabolic = TRUE)
+#' results <- get_pathway_covariance(my_kos, strict_metabolic = TRUE)
 #' 
 #' str(results)
 #' 
