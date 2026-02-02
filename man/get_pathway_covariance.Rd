@@ -38,15 +38,15 @@ str(results)
 rownames(results$binary_matrix)
 
 if (!is.null(results)) {
-   # Print the Covariance Matrix (Rounded for readability)
-   print(round(results$cov_matrix, 3))
+    # Print the Covariance Matrix (Rounded for readability)
+    print(round(results$cov_matrix, 3))
 
-   # Visualization
-   heatmap(results$cov_matrix,
-       main = "Pathway Co-Membership Covariance",
-       symm = TRUE,
-       col = cm.colors(256)
-   )
+    # Visualization
+    heatmap(results$cov_matrix,
+        main = "Pathway Co-Membership Covariance",
+        symm = TRUE,
+        col = cm.colors(256)
+    )
 }
 
 # Run the function, with metabolic filtering
@@ -65,6 +65,5 @@ if (!is.null(results)) {
         col = cm.colors(256)
     )
 }
-
 
 }

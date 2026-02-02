@@ -7,44 +7,44 @@
 #' @importFrom utils read.delim
 #' @importFrom stats cov
 #' @export
-#' @examples 
-#' 
+#' @examples
+#'
 #' # Define KOs
 #' # K00844, K00845: Hexokinase/Glucokinase (Glycolysis)
 #' # K00164: Pyruvate Dehydrogenase (TCA Cycle)
 #' # K00500: Fatty Acid Synthase (Fatty Acid Biosynthesis)
 #' my_kos <- c("K00844", "K00845", "K00164", "K00500")
-#' 
+#'
 #' # Run the function, without metabolic filtering
-#' 
+#'
 #' library(keggcov)
-#' 
+#'
 #' results <- get_pathway_covariance(my_kos)
-#' 
+#'
 #' str(results)
 #' rownames(results$binary_matrix)
-#' 
-#' if (!is.null(results)) {
-#'    # Print the Covariance Matrix (Rounded for readability)
-#'    print(round(results$cov_matrix, 3))
 #'
-#'    # Visualization
-#'    heatmap(results$cov_matrix,
-#'        main = "Pathway Co-Membership Covariance",
-#'        symm = TRUE,
-#'        col = cm.colors(256)
-#'    )
-#'}
-#'
-#' # Run the function, with metabolic filtering
-#' results <- get_pathway_covariance(my_kos, strict_metabolic = TRUE)
-#' 
-#' str(results)
-#' 
 #' if (!is.null(results)) {
 #'     # Print the Covariance Matrix (Rounded for readability)
 #'     print(round(results$cov_matrix, 3))
-#' 
+#'
+#'     # Visualization
+#'     heatmap(results$cov_matrix,
+#'         main = "Pathway Co-Membership Covariance",
+#'         symm = TRUE,
+#'         col = cm.colors(256)
+#'     )
+#' }
+#'
+#' # Run the function, with metabolic filtering
+#' results <- get_pathway_covariance(my_kos, strict_metabolic = TRUE)
+#'
+#' str(results)
+#'
+#' if (!is.null(results)) {
+#'     # Print the Covariance Matrix (Rounded for readability)
+#'     print(round(results$cov_matrix, 3))
+#'
 #'     # Visualization
 #'     heatmap(results$cov_matrix,
 #'         main = "Metabolic Pathway Co-Membership Covariance",
@@ -52,8 +52,7 @@
 #'         col = cm.colors(256)
 #'     )
 #' }
-#' 
-#' 
+#'
 get_pathway_covariance <- function(ko_list, strict_metabolic = FALSE) {
     # 1. Fetch KO-Pathway links directly from KEGG API
     #    The 'link' operation returns a tab-separated text file (TSV)
@@ -139,4 +138,76 @@ get_pathway_covariance <- function(ko_list, strict_metabolic = FALSE) {
         cov_matrix = cov_matrix,
         binary_matrix = pathway_matrix
     ))
+}
+
+#' @title Get Detailed Pathway Information for KOs
+#' @description Retrieves detailed metabolic pathway information for a list of KOs.
+#' @param ko_list A character vector of KO identifiers.
+#' @return A data frame with columns: KO, Pathway_ID, Pathway_Description.
+#' @export
+#' @examples
+#'
+#' library(keggcov)
+#' my_kos <- c("K00844", "K00164")
+#' df <- get_detailed_pathway_info(my_kos)
+#' head(df)
+#'
+get_detailed_pathway_info <- function(ko_list) {
+    # 1. Fetch KO-Pathway links
+    url_links <- "https://rest.kegg.jp/link/pathway/ko"
+    message(paste("Fetching links from:", url_links))
+
+    tryCatch(
+        {
+            links <- read.delim(url_links,
+                header = FALSE, col.names = c("ko", "pathway"),
+                stringsAsFactors = FALSE, colClasses = "character"
+            )
+        },
+        error = function(e) {
+            stop("Failed to fetch links from KEGG API.")
+        }
+    )
+
+    links$ko <- sub("ko:", "", links$ko)
+    links$pathway <- sub("path:", "", links$pathway)
+    # Normalize pathway ID to numeric string (remove 'ko' and everything before numeric)
+    links$pathway_id <- gsub("[^0-9]", "", links$pathway)
+
+    # Filter for user KOs
+    links <- links[links$ko %in% ko_list, ]
+
+    if (nrow(links) == 0) {
+        warning("No pathways found for the provided KOs.")
+        return(NULL)
+    }
+
+    # 2. Fetch Pathway Descriptions
+    url_names <- "https://rest.kegg.jp/list/pathway"
+    message(paste("Fetching pathway names from:", url_names))
+
+    tryCatch(
+        {
+            names_df <- read.delim(url_names,
+                header = FALSE, col.names = c("pathway", "description"),
+                stringsAsFactors = FALSE, colClasses = "character"
+            )
+        },
+        error = function(e) {
+            stop("Failed to fetch pathway names from KEGG API.")
+        }
+    )
+
+    names_df$pathway <- sub("path:", "", names_df$pathway)
+    # Normalize pathway ID to numeric string (remove 'map' and everything before numeric)
+    names_df$pathway_id <- gsub("[^0-9]", "", names_df$pathway)
+
+    # 3. Merge by normalized ID
+    result <- merge(links, names_df, by = "pathway_id", all.x = TRUE)
+
+    # Reorder columns
+    result <- result[, c("ko", "pathway.x", "description")]
+    colnames(result) <- c("KO", "Pathway_ID", "Pathway_Description")
+
+    return(result)
 }
